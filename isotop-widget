@@ -1,0 +1,151 @@
+//Paste this code on plugins Functions or index file
+//Register Custom Post Type
+add_action( 'init', 'bigbuzz_custom_post' );
+function bigbuzz_custom_post(){
+	register_post_type( 'project',
+		array(
+			'labels' => array(
+				'name' => __('Projects'),
+				'singular_name' => __('Project')
+			),
+			'supports' => array('title', 'editor', 'thumbnail', 'page-attributes'),
+			'public' => true
+		)
+
+	);
+/* Register Basic Taxonomy */
+function project_custom_taxonomy() {
+    register_taxonomy(
+        'project_cat',  
+        'project',                  
+        array(
+            'hierarchical'          => true,
+            'label'                 => 'Project Category',  
+            'query_var'             => true,
+            'show_admin_column'     => true,
+            'rewrite'               => array(
+                'slug'              => 'project-category', 
+                'with_front'    => true 
+                )
+            )
+    );
+}
+add_action( 'init', 'project_custom_taxonomy');
+
+
+
+//Isotop widget file
+<?php
+
+class Bigbuzz_Project_Widget extends \Elementor\Widget_Base {
+
+
+	public function get_name() {
+		return 'bigbuzz-project';
+	}
+
+	public function get_title() {
+		return esc_html__( 'Bigbuzz Project', 'bigbuzz-elementor' );
+	}
+
+	public function get_icon() {
+		return 'eicon-apps';
+	}
+
+	public function get_categories() {
+		return [ 'bigbuzz' ];
+	}
+    
+    public function get_keywords() {
+		return [ 'cta', 'call to action', 'text', 'title', 'btn' ];
+	}
+
+	protected function _register_controls() {
+
+	}
+
+	protected function render() {
+
+		$project_daynamic_id = rand(78434, 8989668);         
+	   echo' <script>
+	        jQuery(document).ready(function(){
+	        
+	        jQuery(".bigbuzz-project-list li").on("click", function(){
+	            
+	            jQuery(".bigbuzz-project-list li").removeClass("active");
+	            jQuery(this).addClass("active");
+	            
+	            var selector = jQuery(this).attr("data-filter");
+	            jQuery(".project-filter-'.$project_daynamic_id.'").isotope({
+	                filter: selector
+	            });
+	        });
+	    });
+
+	    jQuery(window).load(function(){
+	        jQuery(".project-filter-'.$project_daynamic_id.'").isotope();
+	    });
+	    </script>';
+
+
+		echo'<div class="row">
+			<div class="col-lg-12">
+				<ul class="bigbuzz-project-list">
+					<li data-filter="*" class="active">All Works</li>';
+
+				$terms = get_terms( 'project_cat' );
+
+				if (! empty( $terms ) && ! is_wp_error( $terms )) {
+					foreach ($terms as $term) {
+
+						echo'<li data-filter=".'.$term->slug.'">'.esc_html( $term->name ).'</li>';
+
+					}
+				}
+
+				echo'</ul>
+			</div>
+			<div class="col-lg-12">
+				<div class="row project-item project-filter-'.$project_daynamic_id.'">';
+
+				$project_query = new WP_Query( array(
+					'posts_per_page' => -1,
+					'post_type' => 'project',
+					'orderby' => 'date',
+					'order' => 'ASC'
+				) );
+
+				while($project_query->have_posts()) : $project_query->the_post();
+		            $idd = get_the_ID();
+		                $project_categorys = get_the_terms( get_the_ID(), 'project_cat' );
+		                if ($project_categorys && ! is_wp_error( $project_categorys) ){
+		                    $project_cat_list = array();
+
+		                    foreach ($project_categorys as $category) {
+		                        $project_cat_list[] = $category->slug;
+		                    }
+		                    $project_assigned_cat = join( " ", $project_cat_list );
+		                }else{
+		                    $project_assigned_cat ='';
+		                }
+
+		             echo'
+		                <div class="col-lg-4 '.$project_assigned_cat.'">
+		                    <div  class="single-project-box" style="background-image: url('.get_the_post_thumbnail_url($idd, 'large').')">
+		                         <a href="'.esc_url( get_the_permalink() ).'">
+									<i class="fa fa-link"></i>
+									<h6>'.get_the_title($idd).'</h6>
+		                         </a>    
+		                    </div>
+		                </div>
+		            ';        
+		        endwhile;
+				wp_reset_query();
+
+				echo'</div>
+			</div>
+		</div>';
+
+	}
+
+}
